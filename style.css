@@ -159,6 +159,14 @@ h2{margin:0;font-size:clamp(46px,6.2vw,80px);line-height:1.04;font-weight:700;le
 .live-glyph{position:absolute;left:50%;top:44%;width:14%;transform:translate(-50%,-50%);color:#d9b48f;filter:drop-shadow(0 12px 18px rgba(120,80,40,.18))}
 .live-enter{position:absolute;left:50%;bottom:9%;transform:translateX(-50%);background:rgba(255,255,255,.7);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);border-radius:980px;padding:10px 22px;font-size:17px;font-weight:500;box-shadow:0 1px 0 rgba(0,0,0,.04),0 8px 24px -10px rgba(0,0,0,.2)}
 .live-card.reveal.in{transform:none}
+.live-preview{position:absolute;inset:0;width:100%;height:100%;display:block;opacity:0;transition:opacity 1s var(--ease)}
+.live-card.pv-ready .live-preview{opacity:1}
+.live-card .live-glyph,.live-card .live-horizon{transition:opacity .8s var(--ease)}
+.live-card.pv-ready .live-glyph,.live-card.pv-ready .live-horizon{opacity:0}
+.live-card.pv-ready .live-enter{background:rgba(255,255,255,.62)}
+body.staged.pv-on #stage{opacity:0;transition:opacity .45s var(--ease)}
+body.staged.live-zoom #stage{opacity:1;z-index:30;transition:none;pointer-events:none}
+body.live-zoom .nav{opacity:0;pointer-events:none;transition:opacity .4s}
 
 /* ---------- Live: expanding shell + full screen ---------- */
 #live-shell{position:fixed;z-index:60;pointer-events:none;opacity:0;border-radius:28px;background:#e9e6e1;left:0;top:0;width:0;height:0}
@@ -251,3 +259,49 @@ body.live-on .glow{opacity:0}
 .nav .ca code{font:500 12px/1 ui-monospace,SFMono-Regular,Menlo,monospace}
 body.light-nav .nav .ca{color:#1d1d1f;border-color:rgba(0,0,0,.14);background:rgba(0,0,0,.04)}
 @media (max-width:900px){.nav .ca code{max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
+
+/* ---------- Gloss & glow ---------- */
+.glow{z-index:-1}
+.glow::before,.glow::after{content:"";position:absolute;left:50%;top:50%;width:110vmax;height:110vmax;margin:-55vmax 0 0 -55vmax;border-radius:50%;will-change:transform}
+.glow::before{background:radial-gradient(closest-side,rgba(255,168,108,.17),rgba(255,140,96,.06) 48%,transparent 72%);animation:auroraA 28s ease-in-out infinite alternate}
+.glow::after{background:radial-gradient(closest-side,rgba(150,138,255,.13),rgba(108,156,255,.05) 48%,transparent 72%);animation:auroraB 34s ease-in-out infinite alternate}
+@keyframes auroraA{0%{transform:translate(-16vmax,20vmax) scale(.62)}50%{transform:translate(2vmax,12vmax) scale(.78)}100%{transform:translate(15vmax,24vmax) scale(.66)}}
+@keyframes auroraB{0%{transform:translate(18vmax,-4vmax) scale(.58)}50%{transform:translate(-6vmax,6vmax) scale(.72)}100%{transform:translate(-18vmax,-2vmax) scale(.62)}}
+.vignette{position:fixed;inset:0;z-index:1;pointer-events:none;background:radial-gradient(130% 95% at 50% 42%,transparent 52%,rgba(0,0,0,.5) 100%)}
+.grain{position:fixed;inset:-100px;z-index:45;pointer-events:none;opacity:.045;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation:grain 1.2s steps(4) infinite;will-change:transform}
+@keyframes grain{0%{transform:translate(0,0)}25%{transform:translate(-37px,21px)}50%{transform:translate(23px,-41px)}75%{transform:translate(-15px,-28px)}100%{transform:translate(0,0)}}
+body.live-on .vignette,body.live-on .grain,body.live-zoom .grain{opacity:0}
+/* bloom: a soft warm halo that hugs the rendered Inu (GPU filter on the canvas only) */
+body.revealed:not(.live-on):not(.pv-on):not(.live-zoom) #stage{filter:drop-shadow(0 0 34px rgba(255,186,140,.14))}
+/* auras behind headlines */
+.copy,.hero-copy,.specs-head,.live-copy{position:relative;isolation:isolate}
+.copy::before,.hero-copy::before,.specs-head::before,.live-copy::before{content:"";position:absolute;z-index:-1;pointer-events:none;left:-12%;top:-30%;width:124%;height:150%;border-radius:50%;
+  background:radial-gradient(46% 42% at 34% 46%,rgba(255,170,112,.13),transparent 70%),radial-gradient(42% 40% at 70% 58%,rgba(146,140,255,.11),transparent 70%);
+  animation:aura 16s ease-in-out infinite alternate;will-change:transform}
+.hero-copy::before{left:-20%;width:140%;top:-40%;height:180%}
+.live-copy::before{background:radial-gradient(46% 42% at 34% 46%,rgba(255,170,112,.16),transparent 70%),radial-gradient(42% 40% at 70% 58%,rgba(146,140,255,.13),transparent 70%)}
+@keyframes aura{0%{transform:translate(-3%,2%) scale(.96) rotate(-4deg)}100%{transform:translate(4%,-3%) scale(1.06) rotate(5deg)}}
+/* specular sheen across headlines and the wordmark as they arrive */
+.copy h2,.specs-head h2,.live-copy h2,.cta h2,.nav .brand{--c:#f5f5f7;--hi:#ffffff;
+  background:linear-gradient(100deg,var(--c) 0%,var(--c) 40%,var(--hi) 46%,#ffd3b4 50%,var(--hi) 54%,var(--c) 60%,var(--c) 100%);background-size:300% 100%;background-position:100% 0;
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.live-copy h2,.cta h2{--c:#1d1d1f;--hi:#8a7f78}
+body.light-nav .nav .brand{--c:#1d1d1f;--hi:#8a7f78}
+.specs-head h2 .dim{-webkit-text-fill-color:#6e6e73}
+.reveal.in h2,.reveal.in.specs-head h2{animation:sheen 2.6s var(--ease) .3s both}
+body.revealed .nav .brand{animation:sheen 3s var(--ease) 1s both}
+/* scroll-linked depth: copy drifts at its own rate and softly focuses in and out at the edges */
+@supports (animation-timeline:view()){
+  @media (prefers-reduced-motion:no-preference){
+    .panel .copy{animation:depth linear both;animation-timeline:view();animation-range:cover 0% cover 100%}
+    @keyframes depth{0%{translate:0 110px;filter:blur(10px)}24%{filter:blur(0)}76%{filter:blur(0)}100%{translate:0 -110px;filter:blur(10px)}}
+    .hero-copy>*{animation:heroOut linear both;animation-timeline:scroll(root);animation-range:0 85vh}
+    .hero-copy>.headline{animation-name:heroOutH}
+    @keyframes heroOut{to{translate:0 -70px;opacity:0;filter:blur(8px)}}
+    @keyframes heroOutH{to{translate:0 -110px;opacity:0;filter:blur(10px)}}
+    .specs-inner,.live-card{animation:rise linear both;animation-timeline:view();animation-range:entry 0% entry 100%}
+    @keyframes rise{from{translate:0 60px}to{translate:0 0}}
+  }
+}

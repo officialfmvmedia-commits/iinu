@@ -33,6 +33,23 @@ const floor=new T.Mesh(new T.PlaneGeometry(40,40),new T.ShadowMaterial({opacity:
 const poolTex=(()=>{const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d'),r=g.createRadialGradient(128,128,0,128,128,128);r.addColorStop(0,'rgba(255,255,255,1)');r.addColorStop(.35,'rgba(255,255,255,.35)');r.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=r;g.fillRect(0,0,256,256);const t=new T.CanvasTexture(c);t.colorSpace=T.SRGBColorSpace;return t})();
 const pool=new T.Mesh(new T.PlaneGeometry(9,9),new T.MeshBasicMaterial({map:poolTex,transparent:true,opacity:0,depthWrite:false,color:0x3a3633,blending:T.AdditiveBlending}));pool.rotation.x=-Math.PI/2;pool.position.y=.002;scene.add(pool);
 
+// Gloss: a faint mirror of the Inu in the floor, faded out with depth below the floor line.
+// Drawn as a cheap second pass of the dog only (no extra render targets), then the normal scene on top.
+const fadeQ=new T.Mesh(new T.PlaneGeometry(80,12),new T.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,
+  blending:T.CustomBlending,blendSrc:T.ZeroFactor,blendDst:T.OneMinusSrcAlphaFactor,blendSrcAlpha:T.ZeroFactor,blendDstAlpha:T.OneMinusSrcAlphaFactor,
+  vertexShader:'varying float vy;void main(){vec4 w=modelMatrix*vec4(position,1.);vy=w.y;gl_Position=projectionMatrix*viewMatrix*w;}',
+  fragmentShader:'varying float vy;void main(){gl_FragColor=vec4(0.,0.,0.,smoothstep(-.02,-1.25,vy));}'}));
+fadeQ.position.set(0,-6,.5);fadeQ.renderOrder=999;fadeQ.visible=false;fadeQ.frustumCulled=false;scene.add(fadeQ);
+function renderStage(){
+  const op=floor.material.opacity;
+  if(dog&&op>.02&&!reduce){
+    renderer.shadowMap.autoUpdate=false;mover.scale.y=-1;mover.updateMatrixWorld(true);floor.visible=pool.visible=false;fadeQ.visible=true;
+    renderer.toneMappingExposure=1.05*.42*(op/.55);renderer.render(scene,camera);
+    mover.scale.y=1;mover.updateMatrixWorld(true);floor.visible=pool.visible=true;fadeQ.visible=false;renderer.toneMappingExposure=1.05;renderer.shadowMap.autoUpdate=true;
+    renderer.autoClear=false;renderer.clearDepth();renderer.render(scene,camera);renderer.autoClear=true;
+  }else renderer.render(scene,camera);
+}
+
 /* ---------- Camera states, one per section ---------- */
 const S=(p,t,r,s,pose='standing')=>({p:new T.Vector3(...p),t:new T.Vector3(...t),r,s,pose});
 const TAU=Math.PI*2;// r=0 faces the camera, +r turns the Inu toward screen-right
@@ -163,6 +180,7 @@ function tick(){
   if(window.__freeze)return;
   const dt=Math.min(clock.getDelta(),DTCAP);elapsed+=dt;
   if(live.on){liveTick(dt);renderer.render(scene,camera);return}
+  if(liveMod&&introOver&&liveMod.preview(dt))return;
   if(revealStart>=0&&reveal<1)reveal=clamp01((performance.now()-revealStart)/REVEAL_MS);
   const e=easeIO(reveal),lk=easeOut(clamp01(reveal*1.25));
   // Lights sweep on.
@@ -183,7 +201,7 @@ function tick(){
   mover.rotation.y=cur.r+sway;
   if(dog){if(introOver)play(target.pose);mixer.update(reduce&&current==='standing'?0:dt)}
   // Stop rendering when the closing section covers the stage.
-  if(cta.getBoundingClientRect().top>0||!introOver)renderer.render(scene,camera);
+  if(cta.getBoundingClientRect().top>0||!introOver)renderStage();
 }
 /* ---------- Live: the living space ---------- */
 import('./live.js').then(m=>{liveMod=m.createLive({T,scene,camera,renderer,canvas,mover,bones,actions,play,getDog:()=>dog,getMixer:()=>mixer,reduce,stageLights:{hemi,key,rimL,rimR,fill,floor,pool},onExit:()=>{snap=true;mover.position.set(0,0,0)}});liveReady()});

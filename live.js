@@ -294,7 +294,8 @@ $('#live-done').addEventListener('click',()=>close());
 if(matchMedia('(hover:none)').matches)$('.hint-verb').textContent='Tap';
 
 /* ---------- Sound + voice UI ---------- */
-const sound=createSound();
+const realSound=createSound(),sound=Object.create(realSound);
+for(const k of ['tap','rustle','bark','chirp'])sound[k]=(...a)=>on?realSound[k](...a):undefined;
 const micCard=$('#mic-card'),micBtn=$('#live-mic'),soundBtn=$('#live-sound'),pill=$('#voice-pill'),pillText=$('#voice-text'),tryEl=$('#voice-try'),toastEl=$('#voice-toast');
 const pan=()=>{const v=mover.position.clone().project(camera);return clamp(v.x*.7,-.8,.8)};
 function gesture(){sound.unlock();if(on&&sound.enabled)sound.startAmbience()}
@@ -335,7 +336,8 @@ function camGoal(){
   const tx=E.pos.x*(mobile?.75:.45),tz=E.pos.z*.3;
   return {t:V(tx,mobile?1.2:1.0,tz),yaw:P.dragYaw+(reduce?0:Math.sin(perf()*.00007)*.1),pitch:clamp((mobile?.42:.34)+P.dragPitch,.14,.75),dist};
 }
-function viewDist(){return 13.5*Math.max(1,Math.pow(1.6/(innerWidth/innerHeight),.5))}
+let aspectOv=0;const asp=()=>aspectOv||innerWidth/innerHeight;
+function viewDist(){return 13.5*Math.max(1,Math.pow(1.6/asp(),.5))}
 let camDist=13.5;
 function placeCamera(dt,instant){
   const g=camGoal();const k=instant?1:1-Math.exp(-dt*1.6);
@@ -429,12 +431,15 @@ function applyRig(live){
   if(live){for(const k of ['hemi','key','rimL','rimR','fill'])L[k].intensity=0;scene.environmentIntensity=.55;scene.background=BG;scene.fog=new T.Fog(BG,18,46)}
   else{scene.background=null;scene.fog=null}
 }
-function enterScene(){
-  on=true;applyRig(true);if(!B.head)findBones();cacheAxes();E.touch=null;
+function initDog(){
+  applyRig(true);if(!B.head)findBones();cacheAxes();E.touch=null;
   E.pos.set(.4,0,.9);E.heading=.25;E.speed=0;E.y=0;E.lookYaw=0;E.sniff=0;E.label='';E.pose='stand';E.busy=0;E.sideHold=false;E.rolling=false;E.hist=[];E.lastBed=E.t-30;E.mode='auto';E.lookMode='free';E.lastMover=null;E.maxSpeed=0;
   play('standing',{fade:.01});setPlan(reduce?[S.label('relax'),S.wait(1e9)]:[S.label('look'),S.wait(2.2)],'auto');say(reduce?'relax':'look');
   P.dragYaw=0;P.dragPitch=0;C.t.set(E.pos.x*.45,1,E.pos.z*.3);C.yaw=0;C.pitch=.34;camDist=viewDist();
   tick(0);placeCamera(0,true);
+}
+function enterScene({keep=false}={}){
+  if(!keep)initDog();on=true;applyRig(true);
   body.classList.add('live-on');ui.hidden=false;requestAnimationFrame(()=>ui.classList.add('show'));
   hint.classList.toggle('gone',reduce);clearTimeout(hintTO);hintTO=setTimeout(()=>hint.classList.add('gone'),8000);
   micBtn.hidden=!voice.supported;pill.hidden=true;tryEl.classList.add('gone');
@@ -444,14 +449,15 @@ function enterScene(){
   if(sound.enabled)sound.startAmbience();
 }
 let hintTO=0;
-function leaveScene(){on=false;clearTimeout(cardTO);voice.pause();sound.stopAmbience();micCard.classList.remove('show');micCard.hidden=true;applyRig(false);mover.position.set(0,0,0);mover.rotation.y=0;ui.classList.remove('show');ui.hidden=true;body.classList.remove('live-on');play('standing',{fade:.01});onExit()}
+function leaveScene(){on=false;pvOn=false;body.classList.remove('pv-on');clearTimeout(cardTO);voice.pause();sound.stopAmbience();micCard.classList.remove('show');micCard.hidden=true;applyRig(false);mover.position.set(0,0,0);mover.rotation.y=0;ui.classList.remove('show');ui.hidden=true;body.classList.remove('live-on');play('standing',{fade:.01});onExit()}
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 function rectOf(el){const r=el?.getBoundingClientRect();if(!r||r.bottom<0||r.top>innerHeight)return {left:innerWidth*.3,top:innerHeight*.3,width:innerWidth*.4,height:innerHeight*.4};return r}
 function shellTo(r,radius,opacity){Object.assign(shell.style,{left:r.left+'px',top:r.top+'px',width:r.width+'px',height:r.height+'px',borderRadius:radius+'px',opacity:String(opacity)})}
 let busy=false,fromEl=null;
 async function open({from=null,instant=false}={}){
   if(on||busy)return;busy=true;fromEl=from;savedScroll=scrollY;if(!instant)sound.unlock();
-  if(instant||reduce){enterScene();busy=false;return}
+  if(instant||reduce){if(pvOn){pvOn=false;body.classList.remove('pv-on');restoreView();enterScene({keep:true})}else enterScene();busy=false;return}
+  if(pvOn&&card){zoom={dir:1,t:0,dur:.8,from:card.getBoundingClientRect()};body.classList.add('live-zoom');return}
   shell.classList.remove('anim');shellTo(rectOf(from),28,1);shell.offsetWidth;
   shell.classList.add('anim');shellTo({left:0,top:0,width:innerWidth,height:innerHeight},0,1);
   await wait(780);enterScene();await wait(60);shellTo({left:0,top:0,width:innerWidth,height:innerHeight},0,0);await wait(650);shell.classList.remove('anim');busy=false;
@@ -459,9 +465,54 @@ async function open({from=null,instant=false}={}){
 async function close(){
   if(!on||busy)return;busy=true;
   if(reduce){leaveScene();scrollTo({top:savedScroll,behavior:'instant'});busy=false;return}
+  {const r=card?.getBoundingClientRect();if(r&&r.bottom>0&&r.top<innerHeight&&pvVis){ // shrink straight back into the card, same scene
+    on=false;clearTimeout(cardTO);voice.pause();realSound.stopAmbience();micCard.classList.remove('show');micCard.hidden=true;ui.classList.remove('show');ui.hidden=true;body.classList.remove('live-on');
+    pvOn=true;body.classList.add('pv-on','live-zoom');zoom={dir:-1,t:0,dur:.75,from:r};return}}
   shell.classList.remove('anim');shellTo({left:0,top:0,width:innerWidth,height:innerHeight},0,0);shell.offsetWidth;shell.classList.add('anim');shell.style.opacity='1';
   await wait(600);leaveScene();scrollTo({top:savedScroll,behavior:'instant'});await wait(30);
   shellTo(rectOf(fromEl||$('#live-open')),28,0);await wait(780);shell.classList.remove('anim');busy=false;
+}
+/* ---------- Preview: the same live room, rendered into the card ---------- */
+const {renderer}=ctx;const card=$('#live-open'),pv=$('#live-preview'),pctx=pv?.getContext('2d'),liveSec=$('#live');
+let pvOn=false,pvVis=false,zoom=null;
+if(card)new IntersectionObserver(([e])=>{pvVis=e.isIntersecting},{rootMargin:'60px 0px'}).observe(card);
+const easeZ=x=>1-Math.pow(1-x,4);
+function restoreView(){aspectOv=0;renderer.setScissorTest(false);renderer.setViewport(0,0,canvas.width/renderer.getPixelRatio(),canvas.height/renderer.getPixelRatio());camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()}
+function enterPreview(r){pvOn=true;aspectOv=r.width/r.height;initDog();body.classList.add('pv-on')}
+function leavePreview(){pvOn=false;body.classList.remove('pv-on');applyRig(false);mover.position.set(0,0,0);mover.rotation.y=0;play('standing',{fade:.01});restoreView();onExit()}
+function glRect(X,Y,W,H,aspect){ // X,Y,W,H in drawing-buffer CSS units, bottom-left origin
+  camera.aspect=aspect;camera.updateProjectionMatrix();aspectOv=aspect;
+  renderer.setViewport(X,Y,W,H);renderer.setScissor(X,Y,W,H);renderer.setScissorTest(true);renderer.render(scene,camera);renderer.setScissorTest(false)}
+function renderRect(x,y,w,h){ // canvas-element CSS px, top-left origin (the buffer can lag the element size)
+  const pr=renderer.getPixelRatio(),bw=canvas.width/pr,bh=canvas.height/pr,fx=bw/(canvas.clientWidth||bw),fy=bh/(canvas.clientHeight||bh);
+  glRect(x*fx,bh-(y+h)*fy,w*fx,h*fy,w/h)}
+function drawPreview(r){
+  const pr=renderer.getPixelRatio(),bw=canvas.width/pr,bh=canvas.height/pr,s=Math.min(1,bw/r.width,bh/r.height),w=Math.floor(r.width*s),h=Math.floor(r.height*s);
+  const pw=Math.round(w*pr),ph=Math.round(h*pr);if(pv.width!==pw||pv.height!==ph){pv.width=pw;pv.height=ph}
+  glRect(0,0,w,h,r.width/r.height);
+  pctx.drawImage(canvas,0,canvas.height-ph,pw,ph,0,0,pw,ph);
+  if(!card.classList.contains('pv-ready'))card.classList.add('pv-ready');
+}
+// called by the page loop every frame while the full room is closed; returns true when it rendered this frame
+function preview(dt){
+  if(zoom){zoomFrame(dt);return true}
+  if(on||busy||!pctx||!getDog())return false;
+  let want=false,r=null;
+  if(pvVis){r=card.getBoundingClientRect();const st=liveSec.getBoundingClientRect().top;want=r.bottom>0&&r.top<innerHeight&&st<innerHeight*(pvOn?.42:.25)}
+  if(want&&!pvOn)enterPreview(r);else if(!want&&pvOn){leavePreview();return false}
+  if(!pvOn)return false;
+  aspectOv=r.width/r.height;tick(dt);drawPreview(r);return true;
+}
+function zoomFrame(dt){
+  const z=zoom;z.t=Math.min(1,z.t+dt/z.dur);const e=easeZ(z.dir>0?z.t:1-z.t);
+  const a=z.from,L=a.left*(1-e),T0=a.top*(1-e),W=a.width+(innerWidth-a.width)*e,H=a.height+(innerHeight-a.height)*e,R=28*(1-e);
+  canvas.style.clipPath=`inset(${T0}px ${innerWidth-L-W}px ${innerHeight-T0-H}px ${L}px round ${R}px)`;
+  aspectOv=W/H;tick(dt);
+  renderer.setScissorTest(false);renderer.setViewport(0,0,canvas.width/renderer.getPixelRatio(),canvas.height/renderer.getPixelRatio());renderer.clear();renderRect(L,T0,W,H);
+  if(z.t>=1){zoom=null;canvas.style.clipPath='';body.classList.remove('live-zoom');restoreView();
+    if(z.dir>0){pvOn=false;body.classList.remove('pv-on');enterScene({keep:true})}
+    else{pvOn=true;body.classList.add('pv-on')}
+    busy=false;z.done?.()}
 }
 function state(){
   const d=getDog();let screen=null;
@@ -470,5 +521,5 @@ function state(){
     pos:E.pos.toArray().map(n=>+n.toFixed(2)),mover:mover.position.toArray().map(n=>+n.toFixed(2)),heading:+E.heading.toFixed(2),t:+E.t.toFixed(1),maxSpeed:+E.maxSpeed.toFixed(2),maxAt:E.maxAt,hist:E.hist.join(','),
     voice:vstate,sound:sound.state(),card:!micCard.hidden,screen,clips:Object.fromEntries(Object.entries(actions).filter(([k,a])=>a.isRunning()||a.paused).map(([k,a])=>[k,[+a.time.toFixed(2),+a.getEffectiveWeight().toFixed(2),a.paused]])),jumps:E.jumps};
 }
-return {isOn:()=>on,tick,open,close,state,resetMax:()=>{E.maxSpeed=0;E.maxAt=''}};
+return {isOn:()=>on,tick,open,close,state,preview,resetMax:()=>{E.maxSpeed=0;E.maxAt=''}};
 }
