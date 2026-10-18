@@ -64,16 +64,31 @@ function scrollState(out){
 const mover=new T.Group();scene.add(mover);
 const bones={legs:[]};let dog=null,mixer=null,actions={},current='',loadDone=false,loadFailed=false,progress=0;
 const manager=new T.LoadingManager();manager.onProgress=(u,l,t)=>{progress=Math.max(progress,l/t)};
-function play(name,{fade=.6,time=0,once=null}={}){
+// Smooth, eased blends: every running action's weight is driven by us (sum always 1), with a smoothstep curve,
+// so poses ease in and out of each other instead of snapping. An action that is already fading is never reset.
+let blend=null;
+function play(name,{fade=.6,time=null,once=null}={}){
   if(!actions[name]||current===name)return;
-  const next=actions[name],prev=actions[current];current=name;
-  next.reset();next.paused=false;next.setEffectiveTimeScale(1);next.setEffectiveWeight(1);next.time=time;
+  const next=actions[name];current=name;
   const one=once??(name==='sitting'||name==='play_dead'||name==='rollover');
-  next.setLoop(one?T.LoopOnce:T.LoopRepeat,one?1:Infinity);next.clampWhenFinished=one;
-  if(prev&&!reduce){prev.paused=false;next.crossFadeFrom(prev,fade,false).play()}else{Object.values(actions).forEach(a=>a!==next&&a.stop());next.play()}
+  const live=Object.values(actions).filter(a=>a!==next&&(a.isRunning()||a.paused)&&a.isScheduled()&&a.getEffectiveWeight()>1e-3);
+  const nw=next.isScheduled()?next.getEffectiveWeight():0;
+  next.stopFading();next.setLoop(one?T.LoopOnce:T.LoopRepeat,one?1:Infinity);next.clampWhenFinished=one;next.setEffectiveTimeScale(1);
+  if(nw<1e-3){next.reset();next.time=time??0}else{next.paused=false;if(time!=null&&nw<.05)next.time=time}
+  next.enabled=true;next.setEffectiveWeight(nw);next.play();
+  if(reduce||!live.length||fade<=0){live.forEach(a=>a.stop());next.setEffectiveWeight(1);blend=null;return}
+  live.forEach(a=>a.stopFading());
+  blend={next,from:live.map(a=>[a,a.getEffectiveWeight()]),n0:nw,t:0,dur:fade};
+}
+function stepBlend(dt){
+  if(!blend)return;if(!blend.next.isScheduled()){blend=null;return}blend.t+=dt;const k=Math.min(1,blend.t/blend.dur),e=k*k*(3-2*k);
+  const nw=blend.n0+(1-blend.n0)*e;blend.next.setEffectiveWeight(nw);
+  let tot=0;blend.from.forEach(([a,w0])=>tot+=w0);const rest=1-nw;
+  blend.from.forEach(([a,w0])=>a.setEffectiveWeight(tot>0?rest*w0/tot:0));
+  if(k>=1){blend.from.forEach(([a])=>{a.setEffectiveWeight(0);a.stop()});blend.next.setEffectiveWeight(1);blend=null}
 }
 new GLTFLoader(manager).load('shiba.gltf',g=>{
-  dog=g.scene;mover.rotation.set(0,0,0);mover.updateMatrixWorld(true);mover.add(dog);mixer=new T.AnimationMixer(dog);g.animations.forEach(c=>actions[c.name]=mixer.clipAction(c));
+  dog=g.scene;mover.rotation.set(0,0,0);mover.updateMatrixWorld(true);mover.add(dog);mixer=new T.AnimationMixer(dog);{const up=mixer.update.bind(mixer);mixer.update=dt=>{stepBlend(dt);return up(dt)}}g.animations.forEach(c=>actions[c.name]=mixer.clipAction(c));
   play('standing');mixer.update(.5);dog.updateMatrixWorld(true);
   // Normalise size and orientation (same approach as the original scene).
   const box=new T.Box3().setFromObject(dog),size=box.getSize(new T.Vector3()),center=box.getCenter(new T.Vector3()),scale=2.5/size.y;
@@ -174,7 +189,7 @@ function tick(){
 import('./live.js').then(m=>{liveMod=m.createLive({T,scene,camera,renderer,canvas,mover,bones,actions,play,getDog:()=>dog,getMixer:()=>mixer,reduce,stageLights:{hemi,key,rimL,rimR,fill,floor,pool},onExit:()=>{snap=true;mover.position.set(0,0,0)}});liveReady()});
 let liveMod=null;const live={get on(){return !!liveMod?.isOn()}};
 function liveTick(dt){liveMod.tick(dt,elapsed)}
-if(params.has('debug'))window.__advance=(sec,step=1/30)=>{for(let t=0;t<sec-1e-6;t+=step)liveTick(step);renderer.render(scene,camera)};
+if(params.has('debug'))window.__advance=(sec,step=1/30,nr)=>{for(let t=0;t<sec-1e-6;t+=step)liveTick(step);if(!nr)renderer.render(scene,camera)};
 let wantLive=params.has('live');
 function onModelReady(){liveReady()}
 function liveReady(){if(wantLive&&liveMod&&dog&&introOver){wantLive=false;liveMod.open({instant:true})}}

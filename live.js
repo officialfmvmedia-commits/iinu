@@ -100,12 +100,12 @@ function freeSpot(){let g;for(let i=0;i<24;i++){g=V(rand(-5.4,5.4),0,rand(-3.6,3
 /* ---------- Postures (real clips) ---------- */
 // stand <-> sit <-> lie, sit <-> side. Every change goes through these real-clip edges, so nothing teleports.
 const EDGES={
-  'stand>sit':()=>{play('sitting',{fade:.85,once:false});return .95},
-  'sit>stand':()=>{play('standing',{fade:.85});return .9},
-  'sit>lie':()=>{play('rollover',{fade:1.05,time:2.1,once:true});return 1.15},
-  'lie>sit':()=>{play('sitting',{fade:1.0,once:false});return 1.1},
-  'sit>side':()=>{play('play_dead',{fade:.55,time:1.45,once:true});E.sideHold=true;return 1.55},
-  'side>sit':()=>{const a=actions.play_dead;E.sideHold=false;a.paused=false;a.time=Math.max(a.time,5.55);return {wait:()=>a.time>=7.25||!a.isRunning(),then:()=>{play('sitting',{fade:.6,once:false});return .65}}},
+  'stand>sit':()=>{play('sitting',{fade:1.1,once:false});return 1.15},
+  'sit>stand':()=>{play('standing',{fade:1.0});return 1.05},
+  'sit>lie':()=>{play('rollover',{fade:1.25,time:2.1,once:true});return 1.3},
+  'lie>sit':()=>{play('sitting',{fade:1.15,once:false});return 1.2},
+  'sit>side':()=>{play('play_dead',{fade:.5,time:1.45,once:true});E.sideHold=true;return 1.55},
+  'side>sit':()=>{const a=actions.play_dead;E.sideHold=false;a.paused=false;return {wait:()=>a.time>=7.25||!a.isRunning(),then:()=>{play('sitting',{fade:.6,once:false});return .65}}},
 };
 const PATH={stand:{sit:['stand>sit'],lie:['stand>sit','sit>lie'],side:['stand>sit','sit>side']},sit:{stand:['sit>stand'],lie:['sit>lie'],side:['sit>side']},
   lie:{sit:['lie>sit'],stand:['lie>sit','sit>stand'],side:['lie>sit','sit>side']},side:{sit:['side>sit'],stand:['side>sit','sit>stand'],lie:['side>sit','sit>lie']}};
@@ -143,7 +143,7 @@ function runStep(dt){
   switch(s.t){
     case 'fx':s.fn();done=true;break;
     case 'pose':{
-      if(E.busy>0)break;
+      if(E.busy>0||E.speed>.04||E.shuffle>.15)break;
       if(s.edgeWait){if(s.edgeWait.wait()){E.busy=s.edgeWait.then();s.edgeWait=null}break}
       if(E.pose===s.p){done=true;break}
       const seq=PATH[E.pose][s.p];const e=seq[0];const to=e.split('>')[1];const r=EDGES[e]();E.pose=to;
@@ -350,10 +350,15 @@ const off=V(),wp=V(),glowEl=pill.querySelector('.voice-glow');
 function env(x,a,b,c){return x<0?0:x<a?x/a:x<a+b?1:x<a+b+c?1-(x-a-b)/c:0} // attack, hold, release
 function tick(dt){
   const dog=getDog(),mixer=getMixer();if(!dog)return;
-  E.t+=dt;mixer.update(dt);
+  E.t+=dt;
+  // Procedural layers are additive on top of the clip pose. Restore last frame's clip pose first, so if the mixer
+  // doesn't rewrite a bone this frame (paused / clamped clip), the layers can't accumulate and drift.
+  if(!E.touch){E.touch=[...new Set([...bones.legs.flatMap(l=>[l.upper,l.lower]),bones.neckBase,bones.neckMid,bones.head,...Object.values(B)].filter(Boolean))];E.base=E.touch.map(b=>b.quaternion.clone())}
+  E.touch.forEach((b,i)=>b.quaternion.copy(E.base[i]));
+  mixer.update(dt);
+  E.touch.forEach((b,i)=>E.base[i].copy(b.quaternion));
   // keep long holds alive inside real clips
   const ro=actions.rollover,pd=actions.play_dead;
-  if(E.pose==='lie'&&!E.rolling&&ro.isRunning()&&ro.time>7.6)ro.time=2.2;
   if(E.sideHold&&pd.time>=4.4)pd.paused=true;
   E.busy=Math.max(0,E.busy-dt);
   if(E.step?.t!=='walk')E.speed=damp(E.speed,0,7,dt);
@@ -425,7 +430,7 @@ function applyRig(live){
   else{scene.background=null;scene.fog=null}
 }
 function enterScene(){
-  on=true;applyRig(true);if(!B.head)findBones();cacheAxes();
+  on=true;applyRig(true);if(!B.head)findBones();cacheAxes();E.touch=null;
   E.pos.set(.4,0,.9);E.heading=.25;E.speed=0;E.y=0;E.lookYaw=0;E.sniff=0;E.label='';E.pose='stand';E.busy=0;E.sideHold=false;E.rolling=false;E.hist=[];E.lastBed=E.t-30;E.mode='auto';E.lookMode='free';E.lastMover=null;E.maxSpeed=0;
   play('standing',{fade:.01});setPlan(reduce?[S.label('relax'),S.wait(1e9)]:[S.label('look'),S.wait(2.2)],'auto');say(reduce?'relax':'look');
   P.dragYaw=0;P.dragPitch=0;C.t.set(E.pos.x*.45,1,E.pos.z*.3);C.yaw=0;C.pitch=.34;camDist=viewDist();
