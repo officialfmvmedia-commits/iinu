@@ -60,7 +60,10 @@
     <a href="#specs">Specs</a>
     <a href="#name">Name</a>
   </nav>
-  <a class="pill" href="#live" data-live>Meet yours</a>
+  <div class="nav-right">
+    <button class="ca" id="ca" type="button" data-ca="mKcSbVcnx8ym4tE8MYcmMBZmzhGsZfGQmhKhoPXpump" title="Copy contract address"><span>CA</span><code>mKcSbVcnx8ym4tE8MYcmMBZmzhGsZfGQmhKhoPXpump</code></button>
+    <a class="pill" href="#live" data-live>Meet yours</a>
+  </div>
 </header>
 
 <main>
@@ -155,5 +158,6 @@
 
 <script src="personalize.js"></script>
 <script type="module" src="app.js"></script>
+<script>document.getElementById('ca').addEventListener('click',function(){var b=this,c=b.querySelector('code'),t=c.textContent;navigator.clipboard&&navigator.clipboard.writeText(b.dataset.ca).then(function(){c.textContent='Copied';setTimeout(function(){c.textContent=t},1400)})})</script>
 </body>
 </html>

@@ -224,3 +224,11 @@ body.live-on .glow{opacity:0}
   .voice-try{bottom:calc(max(30px,env(safe-area-inset-bottom)) + 148px);width:auto;font-size:12px}
 }
 @media (prefers-reduced-motion:reduce){.voice-glow,.mic-orb span,.voice-dot{animation:none}}
+
+.nav-right{display:flex;align-items:center;gap:10px}
+.nav .ca{display:inline-flex;align-items:center;gap:8px;height:28px;padding:0 12px;border-radius:980px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#f5f5f7;font:500 12px/1 var(--font);letter-spacing:-.01em;cursor:pointer;transition:background .2s,border-color .2s}
+.nav .ca:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.24)}
+.nav .ca span{color:#86868b;font-weight:600}
+.nav .ca code{font:500 12px/1 ui-monospace,SFMono-Regular,Menlo,monospace}
+body.light-nav .nav .ca{color:#1d1d1f;border-color:rgba(0,0,0,.14);background:rgba(0,0,0,.04)}
+@media (max-width:900px){.nav .ca code{max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
