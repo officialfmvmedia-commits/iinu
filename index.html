@@ -92,15 +92,26 @@
     </div>
   </section>
 
-  <section class="panel specs-panel" id="specs" data-cam="specs">
-    <div class="specs-wrap">
-      <h2 class="reveal center">The numbers.<br>All good ones.</h2>
-      <div class="specs">
-        <div class="card reveal"><span class="big">4</span><span class="label">paws</span><p>All-paw drive. Standard on every iINU.</p></div>
-        <div class="card reveal"><span class="big">0</span><span class="label">commands</span><p>Nothing to learn. It already knows you.</p></div>
-        <div class="card reveal"><span class="big">24/7</span><span class="label">presence</span><p>Always on. Never needy.</p></div>
-        <div class="card reveal"><span class="big">1</span><span class="label">name</span><p>Yours. Kept on this device, and nowhere else.</p></div>
+  <section class="specs-sec" id="specs" data-cam="specs" aria-labelledby="specs-title">
+    <div class="specs-inner">
+      <header class="specs-head reveal">
+        <p class="specs-eyebrow">iINU at a glance</p>
+        <h2 id="specs-title">The numbers.<br><span class="dim">All good ones.</span></h2>
+      </header>
+      <ul class="glance">
+        <li class="reveal"><p class="g-label">Voice</p><p class="g-num"><span data-count="13">13</span></p><p class="g-unit">voice commands</p><p class="g-desc">Sit. Lie down. Roll over. Go to bed. Just say it.<sup><a href="#fn1" aria-label="Footnote 1">1</a></sup></p></li>
+        <li class="reveal"><p class="g-label">Drive</p><p class="g-num"><span data-count="4">4</span></p><p class="g-unit">paws</p><p class="g-desc">All-paw drive. Standard on every iINU.</p></li>
+        <li class="reveal"><p class="g-label">Presence</p><p class="g-num"><span data-count="24">24</span>/7</p><p class="g-unit">always on</p><p class="g-desc">Naps, wanders, keeps an eye on you. Never needy.</p></li>
+        <li class="reveal"><p class="g-label">Privacy</p><p class="g-num"><span data-count="1">1</span></p><p class="g-unit">name</p><p class="g-desc">Yours. Kept on this device, and nowhere else.<sup><a href="#fn2" aria-label="Footnote 2">2</a></sup></p></li>
+      </ul>
+      <div class="hey reveal">
+        <p class="hey-line">“Hey, <span class="inu-name">iINU</span>.”</p>
+        <p class="hey-sub">No buttons. No app. Just say the word, and it listens.</p>
       </div>
+      <ol class="footnotes">
+        <li id="fn1">Voice commands require microphone access and a browser with speech recognition, such as Safari or Chrome. Speech is recognized by your browser.</li>
+        <li id="fn2">Your iINU’s name is stored locally in your browser and is never sent anywhere.</li>
+      </ol>
     </div>
   </section>
 
@@ -157,6 +168,7 @@
 </footer>
 
 <script src="personalize.js"></script>
+<script src="specs.js" defer></script>
 <script type="module" src="app.js"></script>
 <script>document.getElementById('ca').addEventListener('click',function(){var b=this,c=b.querySelector('code'),t=c.textContent;navigator.clipboard&&navigator.clipboard.writeText(b.dataset.ca).then(function(){c.textContent='Copied';setTimeout(function(){c.textContent=t},1400)})})</script>
 </body>

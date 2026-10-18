@@ -452,7 +452,7 @@ let busy=false,fromEl=null;
 async function open({from=null,instant=false}={}){
   if(on||busy)return;busy=true;fromEl=from;savedScroll=scrollY;if(!instant)sound.unlock();
   if(instant||reduce){enterScene();busy=false;return}
-  shell.classList.remove('anim');shellTo(rectOf(from),36,1);shell.offsetWidth;
+  shell.classList.remove('anim');shellTo(rectOf(from),28,1);shell.offsetWidth;
   shell.classList.add('anim');shellTo({left:0,top:0,width:innerWidth,height:innerHeight},0,1);
   await wait(780);enterScene();await wait(60);shellTo({left:0,top:0,width:innerWidth,height:innerHeight},0,0);await wait(650);shell.classList.remove('anim');busy=false;
 }
@@ -461,7 +461,7 @@ async function close(){
   if(reduce){leaveScene();scrollTo({top:savedScroll,behavior:'instant'});busy=false;return}
   shell.classList.remove('anim');shellTo({left:0,top:0,width:innerWidth,height:innerHeight},0,0);shell.offsetWidth;shell.classList.add('anim');shell.style.opacity='1';
   await wait(600);leaveScene();scrollTo({top:savedScroll,behavior:'instant'});await wait(30);
-  shellTo(rectOf(fromEl||$('#live-open')),36,0);await wait(780);shell.classList.remove('anim');busy=false;
+  shellTo(rectOf(fromEl||$('#live-open')),28,0);await wait(780);shell.classList.remove('anim');busy=false;
 }
 function state(){
   const d=getDog();let screen=null;
