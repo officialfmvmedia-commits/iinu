@@ -305,3 +305,11 @@ body.revealed .nav .brand{animation:sheen 3s var(--ease) 1s both}
     @keyframes rise{from{translate:0 60px}to{translate:0 0}}
   }
 }
+/* nav: let the CA chip give way on narrow screens instead of pushing the pill off-screen */
+.nav .brand,.nav .pill{flex:none;white-space:nowrap}
+.nav-right{min-width:0;flex:0 1 auto;justify-content:flex-end}
+.nav .ca{min-width:0;flex:0 1 auto;overflow:hidden}
+.nav .ca span{flex:none}
+.nav .ca code{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:420px){.nav{gap:12px}.nav-right{gap:8px}.nav .ca{padding:0 10px;gap:6px}}
+html,body{overflow-x:clip}
