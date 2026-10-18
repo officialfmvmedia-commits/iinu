@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>iINU</title>
+<meta name="description" content="Meet iINU. The companion, reimagined from the paws up.">
+<meta name="theme-color" content="#000000">
+<meta property="og:title" content="iINU">
+<meta property="og:description" content="Good boy. Pro. Meet iINU, the companion, reimagined from the paws up.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="iINU">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23000'/%3E%3Cpath fill='%23fff' d='M24 44 28 14 45 31Q50 30 55 31L72 14 76 44Q82 62 70 76 61 86 50 86 39 86 30 76 18 62 24 44Z'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
+</head>
+<body class="locked">
+
+<div id="intro" aria-hidden="true">
+  <div class="boot">
+    <svg class="glyph" viewBox="0 0 100 100" aria-hidden="true">
+      <path fill="currentColor" fill-rule="evenodd" d="M24 44 28 14 45 31Q50 30 55 31L72 14 76 44Q82 62 70 76 61 86 50 86 39 86 30 76 18 62 24 44ZM50 66q-5 0-5 3 0 3 5 5 5-2 5-5 0-3-5-3Z"/>
+    </svg>
+    <div class="bar"><span id="bar-fill"></span></div>
+  </div>
+  <div class="word">iINU</div>
+  <p class="intro-note" id="intro-note"></p>
+  <p class="skip">Click or press any key to skip</p>
+</div>
+
+<canvas id="stage" aria-hidden="true"></canvas>
+<div class="glow" aria-hidden="true"></div>
+
+<div id="live-shell" aria-hidden="true"></div>
+<div id="live-ui" role="dialog" aria-label="iINU living space" hidden>
+  <button class="live-done" id="live-done" type="button">Done</button>
+  <p class="live-caption" aria-live="polite"><span class="inu-name">iINU</span> <span id="live-activity">is exploring.</span></p>
+  <p class="live-hint" id="live-hint"><span class="hint-verb">Click</span> the floor to call <span class="inu-name">iINU</span> over.</p>
+  <div class="live-tools">
+    <button class="live-icon" id="live-mic" type="button" aria-label="Voice commands" aria-pressed="false" title="Voice" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8.5" y="3" width="7" height="12" rx="3.5" fill="currentColor"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="slash" aria-hidden="true"></span></button>
+    <button class="live-icon" id="live-sound" type="button" aria-label="Turn sound off" aria-pressed="true" title="Sound on"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.2L12 5.5v13l-4.8-4H4z" fill="currentColor"/><path class="wave" d="M15.5 9a4.2 4.2 0 0 1 0 6M18 6.6a7.6 7.6 0 0 1 0 10.8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path class="x" d="M16 9.5l5 5M21 9.5l-5 5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button>
+  </div>
+  <div class="mic-card" id="mic-card" role="dialog" aria-modal="false" aria-labelledby="mic-title" hidden>
+    <div class="mic-orb" aria-hidden="true"><span></span><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8.5" y="3" width="7" height="12" rx="3.5" fill="currentColor"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+    <h3 id="mic-title">Talk to <span class="inu-name">iINU</span>.</h3>
+    <p>Turn on your microphone and just say what you’d like. “Sit.” “Lie down.” “Go to bed.” Speech is recognized by your browser.</p>
+    <button class="mic-yes" id="mic-yes" type="button">Enable Microphone</button>
+    <button class="mic-no" id="mic-no" type="button">Not Now</button>
+  </div>
+  <button class="voice-pill" id="voice-pill" type="button" hidden aria-live="polite"><span class="voice-glow" aria-hidden="true"></span><span class="voice-dot" aria-hidden="true"></span><span id="voice-text">Listening</span></button>
+  <p class="voice-try gone" id="voice-try">Try saying <b>“sit”</b> · <b>“lie down”</b> · <b>“go to bed”</b> · <b>“roll over”</b> · <b>“shake”</b> · <b>“speak”</b> · <b>“spin”</b> · <b>“come here”</b> · <b>“good boy”</b></p>
+  <p class="voice-toast" id="voice-toast" role="status"></p>
+</div>
+
+<header class="nav" id="nav">
+  <a class="brand" href="#top" aria-label="iINU home">iINU</a>
+  <nav aria-label="Sections">
+    <a href="#design">Design</a>
+    <a href="#companion">Companion</a>
+    <a href="#specs">Specs</a>
+    <a href="#name">Name</a>
+  </nav>
+  <a class="pill" href="#live" data-live>Meet yours</a>
+</header>
+
+<main>
+  <section class="hero" id="top" data-cam="hero">
+    <div class="hero-copy">
+      <h1 class="kicker">iINU</h1>
+      <p class="headline">Good boy. Pro.</p>
+      <p class="sub">Meet <span class="inu-name">iINU</span>. The companion, reimagined from the paws up.</p>
+    </div>
+    <a class="cue" href="#design">Scroll to explore<span aria-hidden="true">⌄</span></a>
+  </section>
+
+  <section class="panel left" id="design" data-cam="design">
+    <div class="copy reveal">
+      <p class="eyebrow">Design</p>
+      <h2>Every whisker.<br>Considered.</h2>
+      <p>Sculpted in three dimensions and lit like a studio. <strong>iINU looks good from every angle,</strong> because we made every angle.</p>
+    </div>
+  </section>
+
+  <section class="panel right" id="companion" data-cam="sit">
+    <div class="copy reveal">
+      <p class="eyebrow">Companion</p>
+      <h2>Sit. Stay.<br>Shine.</h2>
+      <p>No buttons. No commands. <strong>iINU just knows when to settle in</strong> and keep you company.</p>
+    </div>
+  </section>
+
+  <section class="panel specs-panel" id="specs" data-cam="specs">
+    <div class="specs-wrap">
+      <h2 class="reveal center">The numbers.<br>All good ones.</h2>
+      <div class="specs">
+        <div class="card reveal"><span class="big">4</span><span class="label">paws</span><p>All-paw drive. Standard on every iINU.</p></div>
+        <div class="card reveal"><span class="big">0</span><span class="label">commands</span><p>Nothing to learn. It already knows you.</p></div>
+        <div class="card reveal"><span class="big">24/7</span><span class="label">presence</span><p>Always on. Never needy.</p></div>
+        <div class="card reveal"><span class="big">1</span><span class="label">name</span><p>Yours. Kept on this device, and nowhere else.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel left" id="hello" data-cam="hello">
+    <div class="copy reveal">
+      <p class="eyebrow">Hello</p>
+      <h2>Hello,<br>in paw.</h2>
+      <p>A greeting that never gets old. <strong>Neither does iINU.</strong></p>
+    </div>
+  </section>
+
+  <section class="panel right" id="name" data-cam="name">
+    <div class="copy reveal">
+      <p class="eyebrow">Personal</p>
+      <h2>Yours,<br>by name.</h2>
+      <p>Give your iINU a name. It stays right here in your browser. <strong>Private by nature.</strong></p>
+      <form id="name-form" class="name-form" autocomplete="off">
+        <label class="sr" for="inu-name">Name your iINU</label>
+        <input id="inu-name" name="inu-name" maxlength="24" placeholder="Name your iINU" aria-describedby="name-feedback">
+        <button type="submit">Save</button>
+      </form>
+      <p id="name-feedback" class="feedback" role="status"></p>
+    </div>
+  </section>
+
+  <section class="cta" id="meet">
+    <div class="reveal">
+      <p class="kicker dark">iINU</p>
+      <h2>Loyalty.<br>Rendered.</h2>
+      <p class="cta-sub">One companion. Every angle. Always happy to see you.</p>
+      <div class="cta-actions">
+        <a class="pill big-pill" href="#live" data-live>Meet <span class="inu-name">iINU</span></a>
+        <a class="link" href="?intro=1" id="replay">Replay the intro <span aria-hidden="true">›</span></a>
+      </div>
+    </div>
+  </section>
+  <section class="live" id="live">
+    <div class="live-copy reveal">
+      <p class="eyebrow">Live</p>
+      <h2>At home with<br><span class="inu-name">iINU</span>.</h2>
+      <p class="live-sub">A calm little room where your iINU wanders, naps, and keeps an eye on you. No buttons. Just say the word.</p>
+    </div>
+    <button class="live-card reveal" id="live-open" type="button" data-live aria-label="Enter the iINU living space">
+      <span class="live-horizon" aria-hidden="true"></span>
+      <svg class="live-glyph" viewBox="0 0 100 100" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M24 44 28 14 45 31Q50 30 55 31L72 14 76 44Q82 62 70 76 61 86 50 86 39 86 30 76 18 62 24 44ZM50 66q-5 0-5 3 0 3 5 5 5-2 5-5 0-3-5-3Z"/></svg>
+      <span class="live-enter">Enter <span aria-hidden="true">⤢</span></span>
+    </button>
+  </section>
+</main>
+
+<footer class="foot">
+  <p>iINU. Designed by Inu-telligence.</p>
+  <p>Not affiliated with Apple Inc. Just inspired by good design.</p>
+</footer>
+
+<script src="personalize.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>
